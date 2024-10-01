@@ -9,20 +9,19 @@ generator client {
 }
 
 model Message {
-  id            String    @id @default(cuid()) // Unique message ID
-  parentId      String? // Optional parent ID if this message is part of a branch
-  chatIndex     Int // Index representing the order of the message in the conversation
-  content       String // The actual content of the message
-  role          Role // Role of the sender (user or assistant)
-  createdAt     DateTime  @default(now()) // Timestamp of when the message was created
-  branchVersion Int       @default(0) // Tracks the branch version for edits
-  children      Message[] @relation("MessageToMessage") // Points to messages branching from this one
-
+  id             Int      @id @default(autoincrement())
+  content        String
+  role           String   // 'USER' or 'ASSISTANT'
+  parentId       Int?     // Self-referencing relation to handle parent-child branching
+  chatId         Int      // A single chat session can have multiple messages
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  branchVersion  Int      // Version number to track branches
+  isLatest       Boolean  @default(true) // Flag to denote the latest branch version for a specific edit
+  
   // Relations
-  parent Message? @relation("MessageToMessage", fields: [parentId], references: [id])
-}
-
-enum Role {
-  USER
-  ASSISTANT
+  parent         Message? @relation("ParentChild", fields: [parentId], references: [id])
+  children       Message[] @relation("ParentChild")
+  
+  @@index([chatId, branchVersion]) // Index for efficient querying of branches
 }
